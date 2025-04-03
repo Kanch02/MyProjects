@@ -1,0 +1,77 @@
+{% extends "navbar.html" %}
+{% block title %}SFB Process{% endblock %}
+
+{% block content%}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/yaml-editor.css') }}" />
+
+<div class="yaml-editor">
+    <h3>Config File Editor</h3>
+
+    <!-- Dropdown for file selection -->
+    <label for="fileDropdown">Select a Config File:</label>
+    <select id="fileDropdown" onchange="loadYamlFromDropdown()">
+        <option value="">-- Select a file --</option>
+        <option value="10080_Config">10080_Config</option>
+        <option value="22880_Config">22880_Config</option>
+    </select>
+
+    <br><br>
+    <textarea id="yamlContent" rows="20" cols="120"></textarea>
+    <br><br>
+    <button onclick="saveYaml()">Save</button>
+</div>
+
+<script>
+    let currentFile = "";
+
+    function loadYamlFromDropdown() {
+        const dropdown = document.getElementById('fileDropdown');
+        const selectedFile = dropdown.value;
+        const editor = document.getElementById('yamlContent');
+
+        if (selectedFile) {
+            currentFile = selectedFile;
+            fetch(`/get_yaml?file_key=${selectedFile}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        editor.value = data.content;
+                    }
+                })
+                .catch(err => console.error(err));
+        } else {
+            editor.value = "";
+            currentFile = "";
+        }
+    }
+
+    function saveYaml() {
+        const content = document.getElementById('yamlContent').value;
+        if (!currentFile) {
+            alert("Please select a YAML file to save.");
+            return;
+        }
+
+        fetch('/save_yaml', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ file_key: currentFile, content: content }),
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert(data.message);
+                }
+                window.location.href = "/run_exe";
+            })
+            .catch(err => console.error(err));
+    }
+</script>
+
+{% endblock %}

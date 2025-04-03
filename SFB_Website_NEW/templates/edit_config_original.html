@@ -1,0 +1,78 @@
+{% extends "navbar.html" %}
+{% block title %}SFB Process{% endblock %}
+
+{% block content%}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/yaml-editor.css') }}" />
+<div class="yaml-editor">
+    <h3>Config File Editor</h3>
+    <label>
+        <input type="checkbox" id="10080_Config" onclick="loadYaml('10080_Config')"> 10080_Config
+    </label><br>
+    <label>
+        <input type="checkbox" id="22880_Config" onclick="loadYaml('22880_Config')"> 22880_Config
+    </label>
+    
+    <br><br>
+    <textarea id="yamlContent" rows="20" cols="120"></textarea>
+    <br><br>
+    <button onclick="saveYaml()">Save</button>
+</div>
+
+
+<script>
+    let currentFile = "";
+
+    function loadYaml(fileKey) {
+        const checkbox = document.getElementById(fileKey);
+        const otherCheckbox = fileKey === "10080_Config" ? "22880_Config" : "10080_Config";
+        const otherCheckboxElement = document.getElementById(otherCheckbox);
+        const editor = document.getElementById('yamlContent');
+
+        if (checkbox.checked) {
+            otherCheckboxElement.checked = false;
+
+            currentFile = fileKey;
+            fetch(`/get_yaml?file_key=${fileKey}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        editor.value = data.content;
+                    }
+                })
+                .catch(err => console.error(err));
+        } else {
+            editor.value = "";
+            currentFile = "";
+        }
+    }
+
+    function saveYaml() {
+        const content = document.getElementById('yamlContent').value;
+        if (!currentFile) {
+            alert("Please select a YAML file to save.");
+            return;
+        }
+
+        fetch('/save_yaml', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ file_key: currentFile, content: content }),
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert(data.message);
+                }
+                window.location.href = "/run_exe";
+            })
+            .catch(err => console.error(err));
+    }
+</script>
+
+{% endblock %}

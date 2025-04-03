@@ -1,0 +1,108 @@
+{% extends "navbar.html" %}
+{% block title %}SFB Process{% endblock %}
+
+{% block content%}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/run_exe.css') }}" />
+
+<style>
+    #outputSection {
+        display: none;
+    }
+</style>
+
+<script>
+    let selectedProcess = "";
+    let isExecuting = false;
+
+    function selectProcess(process) {
+        const otherProcess = process === "10080" ? "22880" : "10080";
+
+        if (isExecuting) {
+            alert("Please wait for the current process to finish.");
+            return;
+        }
+
+        const currentCheckbox = document.getElementById(`SFB_${process}`);
+        const otherCheckbox = document.getElementById(`SFB_${otherProcess}`);
+
+        if (currentCheckbox.checked) {
+            otherCheckbox.checked = false;
+            selectedProcess = process;
+        } else {
+            selectedProcess = "";
+            hideOutput();
+        }
+    }
+
+    function executeProcess() {
+        if (!selectedProcess) {
+            alert("Please select a process to execute.");
+            return;
+        }
+
+        const outputBox = document.getElementById('output');
+        const outputSection = document.getElementById('outputSection');
+        outputBox.innerText = "Loading...";
+        outputSection.style.display = "block"; 
+        isExecuting = true;
+        document.getElementById('executeButton').disabled = true;
+        document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.disabled = true);
+
+        fetch(`/execute_sfb_process`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ process: selectedProcess }),
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    outputBox.innerText = data.error;
+                } else {
+                    outputBox.innerText = data.output;
+                }
+                
+            })
+            .then(
+                alert("File Execution Completed Successfully !!!")
+            )
+            .catch(err => {
+                console.error(err);
+                outputBox.innerText = "An error occurred.";
+            })
+            .finally(() => {
+                isExecuting = false;
+                document.getElementById('executeButton').disabled = false;
+                document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.disabled = false);
+            });
+    }
+
+    function hideOutput() {
+        const outputSection = document.getElementById('outputSection');
+        const outputBox = document.getElementById('output');
+        outputBox.innerText = ""; 
+        outputSection.style.display = "none"; 
+    }
+</script>
+
+<div class="execute-exe">
+    <h3>SFB Process Execution</h3>
+    <label>
+        <input type="checkbox" id="SFB_10080" onclick="selectProcess('10080')"> SFB Process for 10080
+    </label><br>
+    <label>
+        <input type="checkbox" id="SFB_22880" onclick="selectProcess('22880')"> SFB Process for 22880
+    </label><br><br>
+    <button id="executeButton" onclick="executeProcess()">Execute</button>
+
+    <div id="outputSection">
+        <h3>Output:</h3>
+        <pre id="output"></pre>
+    </div>
+</div>
+
+
+
+{% endblock %}
